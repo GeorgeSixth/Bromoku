@@ -1,0 +1,191 @@
+//
+// Game.hpp for Gomoku in /home/de-vie_f//Gomoku
+//
+// Made by fabien de-vienne
+// Login   <de-vie_f@epitech.net>
+//
+// Started on Mon Nov 26 15:28:53 2012 fabien de-vienne
+// Last update Thu Jan 17 17:29:26 2013 fabien de-vienne
+//
+
+#ifndef GAME__
+#define GAME__
+
+#include <string>
+#include <iostream>
+#include <vector>
+#include <time.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <utility>
+
+typedef unsigned int	uint;
+typedef std::vector<std::pair <uint, uint> > vpair;
+
+class			Game
+{
+  public:
+    typedef enum
+    {
+      IA = 1,
+      PLAYER
+    }			Mode;
+
+    typedef enum
+    {
+      NONE = 0,
+      RED = -1,
+      BLUE = 1
+    }			Case;
+
+  private:
+    typedef enum
+    {
+      MIN = -1,
+      MAX = 1
+    }			Borne;
+
+    typedef enum
+    {
+      END,
+      CON
+    }			StateGame;
+
+    typedef struct	s_result
+    {
+	bool		_move;
+	bool		_eat;
+	vpair		_eatingPoint;
+	bool		_win;
+    }			t_result;
+
+    class		Map
+    {
+      private:
+	unsigned int	_pawns[12];
+	unsigned int	_presence[12];
+
+      public:
+	Map();
+	~Map();
+	Case		getPoint(const uint&, const uint&) const;
+	void		setPoint(const uint&, const uint&, Case);
+	void		eatPawns(const uint&, const uint&);
+	void		deletePawn(const uint&, const uint&);
+    };
+
+    class		Arbiter
+    {
+      private:
+	Game		*_game;
+	std::vector<std::vector<std::pair<uint, uint> > >   tab;
+	int		checkFreePos(const uint&, const uint&);
+	int		checkDouble3(const uint&, const uint&, const Case&);
+	bool		checkDestroy(const uint&, const uint&, vpair *, const Case&);
+	bool		checkVictory(const uint&, const uint&, const Case&);
+	Case		getColor(const uint&, const uint&) const;
+
+      public:
+	Arbiter(Game *goban);
+	~Arbiter();
+	t_result	*verifArbiter(const uint&, const uint&, const Case &);
+    };
+
+    class		APlayer
+    {
+      protected:
+	int		_id;
+	uint		_nbPawnsEat;
+	uint		_nbRows;
+	Case		_color;
+
+      public:
+	APlayer() {}
+	virtual ~APlayer() {}
+	virtual uint	getPawns() const = 0;
+	virtual void	setPawns(const uint&) = 0;
+	virtual uint	getRows() const = 0;
+	virtual void	setRows(const uint&) = 0;
+	virtual Case	getColor() const = 0;
+	virtual bool	play(const uint&, const uint&, Map*, Arbiter*, bool*) = 0;
+	virtual void	win(void) = 0;
+    };
+
+    class		Player : public APlayer
+    {
+      public:
+	Player(const int&);
+	~Player();
+	uint		getPawns() const;
+	void		setPawns(const uint&);
+	uint		getRows() const;
+	void		setRows(const uint&);
+	Case		getColor() const;
+	bool		play(const uint&, const uint&, Map*, Arbiter*, bool*);
+	void		win(void);
+    };
+
+  public:
+    class		Ia : public APlayer
+    {
+    public:
+	typedef std::pair< std::pair<uint, uint>, int > Move;
+      private :
+	StateGame		state;
+	Map			map;
+	int			level;
+	Move			bestMove;
+	std::vector<Move>	bestMoves;
+
+      public :
+	Ia(const int&, Map);
+	~Ia();
+
+      std::vector<Move>	startAlgo(Map);
+      Move          algoIa(int x, int y);
+      std::vector<Move>	getMove(const uint x, const uint y);
+      std::vector<Move>		sortMoves();
+	void			doMove(Move, Case);
+      void			delMove(Move move);
+	uint			getPawns() const;
+	void			setPawns(const uint&);
+	uint			getRows() const;
+	void			setRows(const uint&);
+	Case			getColor() const;
+	bool			play(const uint&, const uint&, Map*, Arbiter*, bool*);
+	void			win(void);
+	void			getLine(int *, Case, const uint x, const uint y);
+	void			checkMiamDiagonal(int *, Case, const uint x, const uint y);
+	void			checkMiamX(int *, Case, const uint x, const uint y);
+	void			checkMiamY(int *, Case, const uint x, const uint y);
+	void			checkMiam(int *, Case, const uint x, const uint y);
+	int			Value(Case, const uint x, const uint y);
+    };
+
+  private:
+    int				_turn;
+    uint			_clickX;
+    uint			_clickY;
+    Mode			_gameMode;
+    APlayer			*_player1;
+    APlayer			*_player2;
+    Map				*_map;
+    Arbiter			*_arbiter;
+
+  public:
+    Game(const Mode &);
+    ~Game();
+    void			setClick(const uint&, const uint&);
+    void			setGamemode(Mode const&);
+    void			setTurn();
+    void			setFirstTurn();
+    APlayer			*getPlayer(const int&) const;
+    Map				*getMap(void) const;
+    Arbiter			*getArbiter(void) const;
+    int				getTurn() const;
+    Mode			getMode() const;
+    uint			getClickX() const;
+    uint			getClickY() const;
+};
+
+#endif

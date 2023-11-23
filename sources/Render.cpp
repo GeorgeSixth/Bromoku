@@ -1,0 +1,500 @@
+#include <unistd.h>
+#include "Render.hpp"
+#include "Menu.hpp"
+#include "Game.hpp"
+
+extern bool             option[3];
+
+Render::Render(Game *game)
+  : App(sf::VideoMode(880, 880, 32), "Bromoku", sf::Style::Close)
+{
+  if (!this->loader.LoadFromFile("./Textures/loading.png"))
+    std::cout << "Cannot find loading.png" << std::endl;
+  else
+    {
+      this->LoaderIm.SetImage(this->loader);
+      this->App.Draw(LoaderIm);
+      this->App.Display();
+    }
+  if (!this->MyFont.LoadFromFile("./Textures/SALVATIO.TTF"))
+    {
+      std::cout << "Connat find requested font." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->Blue.LoadFromFile("./Textures/WaterIcon.png"))
+    {
+      std::cout << "Cannot find WaterIcon.png." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->Machine.LoadFromFile("./Textures/AiIcon.png"))
+    {
+      std::cout << "Cannot find AiIcon.png." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->Red.LoadFromFile("./Textures/FireIcon.png"))
+    {
+      std::cout << "Cannot find FireIcon.png." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->Background.LoadFromFile("./Textures/WoodGomoku.png"))
+    {
+      std::cout << "Cannot find WoodGomoku.png." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->RedPlayer.LoadFromFile("./Textures/RedPlayer.png"))
+    {
+      std::cout << "Cannot find RedPlayer.png" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->RedPlayerS.LoadFromFile("./Textures/RedPlayerShadow.png"))
+    {
+      std::cout << "Cannot find RedPlayerShadow.png" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->BluPlayer.LoadFromFile("./Textures/BluePlayer.png"))
+    {
+      exit(EXIT_FAILURE);
+      std::cout << "Cannot find BluePlayer.png" << std::endl;
+    }
+  if (!this->BluPlayerS.LoadFromFile("./Textures/BluePlayerShadow.png"))
+    {
+      std::cout << "Cannot find BluePlayerShadow.png" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->GameOver.LoadFromFile("./Textures/GameOver.png"))
+    {
+      std::cout << "Cannot find GameOver.png" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->_buf.LoadFromFile("./Textures/Put.ogg"))
+    {
+      std::cout << "Cannot find Put.ogg" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  if (!this->_ambiant.OpenFromFile("./Textures/Ambiant.ogg"))
+    {
+      std::cout << "Cannot find Ambiant.ogg" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+
+  this->Wallpaper.SetImage(this->Background);;
+  this->AiCoin.SetImage(this->Machine);
+  this->RedCoin.SetImage(this->Red);
+  this->BluCoin.SetImage(this->Blue);
+  this->RedP.SetImage(this->RedPlayer);
+  this->RedPs.SetImage(this->RedPlayerS);
+  this->BluP.SetImage(this->BluPlayer);
+  this->BluPs.SetImage(this->BluPlayerS);
+  this->RedScore.SetImage(this->Red);
+  this->BluScore.SetImage(this->Blue);
+  this->_gameOver.SetImage(this->GameOver);
+
+  this->_sand.SetBuffer(this->_buf);
+
+  this->Text.SetText("Bromoku");
+  this->Text.SetFont(MyFont);
+  this->Text.SetSize(50);
+  this->Text.Move(330.f , 5.f);
+  this->Text.SetColor(sf::Color(0, 0, 0));
+
+  this->running = true;
+  this->wait = true;
+  this->_game = game;
+}
+
+Render::~Render()
+{
+
+}
+
+bool		Render::init()
+{
+  if (option[2] == true)
+    {
+      this->_ambiant.Play();
+      this->_ambiant.SetLoop(true);
+    }
+  this->App.Draw(this->Wallpaper);
+  this->drawGrid();
+  this->App.Draw(this->Text);
+  this->drawCoin();
+  this->drawPlayers();
+
+  return this->running;
+}
+
+bool		Render::eventPoller(unsigned int mode, int t)
+{
+  if (mode != 2 && t == -1)
+    return true;
+
+  sf::Event		Event;
+  while ((this->App).GetEvent(Event))
+    {
+      switch (Event.Type)
+	{
+	case sf::Event::Closed:
+	  (this->App).Close();
+	  exit(EXIT_SUCCESS);
+	  break;
+	case sf::Event::KeyPressed:
+	  switch (Event.Key.Code)
+	    {
+	    case sf::Key::Escape:
+	      (this->App).Close();
+	      exit(EXIT_SUCCESS);
+	      break;
+	    default:
+	      break;
+	    }
+	  break;
+	case sf::Event::MouseButtonReleased :
+	  this->_sand.Play();
+	  int		tab[2];
+	  tab[0] = (Event.MouseButton.X - 60) / 40;
+	  tab[1] = (Event.MouseButton.Y - 60) / 40;
+	  if ((tab[0] >= 0 && tab[0] <= 18) &&
+	      (tab[1] >= 0 && tab[1] <= 18))
+	    this->_game->setClick(tab[0], tab[1]);
+          break;
+	default:
+	  break;
+	}
+    }
+  if (Event.Type == sf::Event::MouseButtonReleased)
+    return true;
+  return false;
+}
+
+void		Render::drawGrid()
+{
+  int		x = 80;
+  int		y = 80;
+
+  sf::Shape	LineX = sf::Shape::Line(x, y, 800, y, 2, sf::Color(0, 0, 0));
+  while (x <= 800)
+    {
+      this->App.Draw(LineX);
+      LineX.Move(0, 40);
+      x += 40;
+    }
+  x = 80;
+
+  sf::Shape	LineY = sf::Shape::Line(x, y, x, 800, 2, sf::Color(0, 0, 0));
+  while (y <= 800)
+    {
+      this->App.Draw(LineY);
+      LineY.Move(40, 0);
+      y += 40;
+    }
+}
+
+void		Render::drawPlayers()
+{
+  int		i = this->_game->getTurn();
+
+  if (i == -1)
+    {
+      this->RedP.SetX(800.f);
+      this->RedP.SetY(734.f);
+      this->App.Draw(this->RedP);
+      this->BluPs.SetX(0.f);
+      this->BluPs.SetY(758.f);
+      this->App.Draw(this->BluPs);
+    }
+  else
+    {
+      this->RedPs.SetX(800.f);
+      this->RedPs.SetY(734.f);
+      this->App.Draw(this->RedPs);
+      this->BluP.SetX(0.f);
+      this->BluP.SetY(758.f);
+      this->App.Draw(this->BluP);
+    }
+}
+
+void		Render::drawScore()
+{
+  int		scoreP1 = this->_game->getPlayer(1)->getPawns();
+  int		scoreP2 = this->_game->getPlayer(2)->getPawns();
+
+  switch (scoreP1)
+    {
+    case 2 :
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      break;
+    case 4 :
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      break;
+    case 6 :
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      break;
+    case 8 :
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(640);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(640);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      break;
+    case 10 :
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(760);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(720);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(680);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(640);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(640);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(600);
+      this->BluScore.SetY(800);
+      this->App.Draw(this->BluScore);
+      this->BluScore.SetX(600);
+      this->BluScore.SetY(840);
+      this->App.Draw(this->BluScore);
+      break;
+    default :
+      break;
+    }
+
+  switch (scoreP2)
+    {
+    case 2 :
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      break;
+    case 4 :
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      break;
+    case 6 :
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      break;
+    case 8 :
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(200);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(200);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      break;
+    case 10 :
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(80);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(120);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(160);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(200);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(200);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(240);
+      this->RedScore.SetY(800);
+      this->App.Draw(this->RedScore);
+      this->RedScore.SetX(240);
+      this->RedScore.SetY(840);
+      this->App.Draw(this->RedScore);
+      break;
+    default :
+      break;
+    }
+}
+
+void		Render::drawCoin()
+{
+  int		x = 0;
+  int		y = 0;
+  int		i = 60;
+  int		j = 60;
+
+  this->App.Draw(this->Wallpaper);
+  this->App.Draw(this->Text);
+  this->drawGrid();
+  this->Coin.SetX(0.f);
+  this->Coin.SetY(0.f);
+  while (y <= 18)
+    {
+      while (x <= 18)
+	{
+	  switch (this->_game->getMap()->getPoint(x, y))
+	    {
+	      case NONE:
+		break;
+	      case BLUE:
+		this->Coin = this->BluCoin;
+		this->Coin.Move((x * 40) + 60, (y * 40) + 60);
+		this->App.Draw(Coin);
+		break;
+	    default:
+		this->Coin = this->RedCoin;
+		this->Coin.Move((x * 40) + 60, (y * 40) + 60);
+		this->App.Draw(Coin);
+		break;
+	    }
+	  x++;
+	}
+      this->Coin.Move(-760, 40);
+      y++;
+      x = 0;
+    }
+}
+
+bool		Render::getRunning()
+{
+  return (this->running);
+}
+
+void		Render::setRunning(bool var)
+{
+  this->running = var;
+}
+
+void		Render::drawEnd()
+{
+  sf::Event	event;
+
+  this->App.Draw(this->_gameOver);  
+  this->App.Display();
+  sleep(5);
+  execl("./Gomoku", NULL, NULL);
+  return ;
+}
+
+void            Render::refresh(void)
+{
+  this->App.Draw(this->Wallpaper);
+  this->App.Draw(this->Text);
+  this->drawGrid();
+}
